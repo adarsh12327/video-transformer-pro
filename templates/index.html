@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Video Transformer Pro</title>
+<style>
+:root{color-scheme:dark;--bg:#090d16;--card:#151d2c;--line:#29364d;--muted:#9ba9c0;--accent:#8290ff}
+*{box-sizing:border-box}body{margin:0;padding:16px;background:var(--bg);color:#f4f6fc;font-family:Arial,sans-serif}
+main{max-width:760px;margin:auto}.head{text-align:center;padding:20px 0}.logo{font-size:27px;font-weight:900;letter-spacing:1px}.logo span{color:var(--accent)}
+.muted{color:var(--muted);font-size:13px;line-height:1.5}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:17px;margin:14px 0}
+h2{font-size:17px;margin:0 0 12px}label{display:block;color:#c8d1e2;font-size:13px;margin:13px 0 7px}
+input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #3a4862;background:#0d1422;color:white;font-size:14px}
+input[type=range]{padding:0;accent-color:var(--accent)}input[type=file]{font-size:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.tabs{display:flex;gap:8px}.tabs label{flex:1;border:1px solid var(--line);padding:11px;border-radius:10px;text-align:center;margin:0}.tabs input{width:auto}
+button,.download{display:inline-block;border:0;border-radius:10px;padding:13px 16px;background:linear-gradient(100deg,#5969ee,#9869ed);color:white;font-weight:bold;text-decoration:none;text-align:center}
+button{width:100%;margin-top:15px;font-size:15px}button:disabled{opacity:.5}
+video{width:100%;max-height:320px;background:#000;border-radius:11px;margin-top:10px}
+.progress{height:13px;background:#0a1020;border-radius:20px;overflow:hidden;margin:12px 0}.bar{height:100%;width:0;background:linear-gradient(90deg,#5e72f2,#a16aee);transition:width .3s}
+.row{display:flex;justify-content:space-between;gap:12px;align-items:center}.status{color:#aebcff;font-size:13px}
+.item{padding:12px 0;border-bottom:1px solid var(--line);font-size:13px}.item:last-child{border:0}
+.hidden{display:none!important}.notice{padding:12px;border-radius:10px;background:#402b31;color:#ffdce1;margin:12px 0}
+@media(max-width:480px){.grid{grid-template-columns:1fr}.logo{font-size:23px}}
+</style></head>
+<body><main>
+<header class="head"><div class="logo">VIDEO <span>TRANSFORMER PRO</span></div><p class="muted">Trim · Filters · Merge · Watermark · Export</p></header>
+<section class="card"><h2>01 · Upload videos</h2>
+<label>Select one or more videos (up to 5)</label><input id="videos" type="file" accept="video/mp4,video/quicktime,video/x-matroska,video/webm" multiple>
+<p class="muted">Supported: MP4, MOV, MKV, WEBM. Total upload limit: 500 MB.</p><div id="previews"></div></section>
+<section class="card"><h2>02 · Editing mode</h2><div class="tabs">
+<label><input type="radio" name="mode" value="auto" checked> Automatic</label>
+<label><input type="radio" name="mode" value="manual"> Manual</label></div>
+<div id="autoBox"><label>Automatic preset</label><select id="preset">
+<option value="cinematic">Cinematic</option><option value="natural">Natural</option><option value="vivid">Vivid</option><option value="vintage">Vintage</option><option value="bw">Black & White</option><option value="warm">Warm</option><option value="cool">Cool</option></select></div>
+<div id="manualBox" class="hidden"><label>Manual filter</label><select id="manualFilter">
+<option value="natural">Natural</option><option value="cinematic">Cinematic</option><option value="vivid">Vivid</option><option value="vintage">Vintage</option><option value="bw">Black & White</option><option value="warm">Warm</option><option value="cool">Cool</option></select></div></section>
+<section class="card"><h2>03 · Trim & cut</h2><div class="grid">
+<div><label>Start time (seconds)</label><input id="start" type="number" min="0" step="0.1" value="0"></div>
+<div><label>End time (seconds, 0 = full video)</label><input id="end" type="number" min="0" step="0.1" value="0"></div></div>
+<p class="muted">For merged clips, the same trim range is applied to each clip. If End is longer than a clip, that clip is safely trimmed to its own end.</p></section>
+<section class="card"><h2>04 · Watermark & audio</h2><label>Text watermark (optional)</label><input id="watermark" maxlength="80" placeholder="Your channel or brand name">
+<label>Audio volume: <span id="volLabel">100%</span></label><input id="volume" type="range" min="0" max="2" step="0.1" value="1"></section>
+<section class="card"><h2>05 · Export settings</h2><div class="grid">
+<div><label>Resolution</label><select id="resolution"><option value="720">720p HD</option><option value="1080">1080p Full HD</option><option value="2160">4K UHD</option><option value="480">480p</option></select></div>
+<div><label>Aspect ratio</label><select id="ratio"><option value="16:9">16:9 Landscape</option><option value="9:16">9:16 Reel</option><option value="1:1">1:1 Square</option></select></div></div>
+<label>Quality</label><select id="quality"><option value="23">Balanced</option><option value="18">High quality</option><option value="28">Smaller file</option></select></section>
+<section class="card"><h2>06 · Processing</h2><div class="row"><span class="status" id="status">Ready</span><strong id="percent">0%</strong></div>
+<div class="progress"><div class="bar" id="bar"></div></div><button id="startBtn">TRANSFORM VIDEO</button><div id="result" class="hidden"></div><div id="error" class="notice hidden"></div></section>
+<section class="card"><div class="row"><h2>07 · Download history</h2><button id="refreshHistory" style="width:auto;margin:0;padding:9px 12px">Refresh</button></div><div id="history" class="muted">Loading history…</div></section>
+<p class="muted" style="text-align:center">Local editor · Use videos you own or are authorized to edit.</p>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+let previewUrls=[];
+document.querySelectorAll('input[name="mode"]').forEach(r=>r.addEventListener('change',()=>{
+ const manual=document.querySelector('input[name="mode"]:checked').value==='manual';
+ $('manualBox').classList.toggle('hidden',!manual);$('autoBox').classList.toggle('hidden',manual);
+}));
+$('volume').addEventListener('input',()=>$('volLabel').textContent=Math.round(Number($('volume').value)*100)+'%');
+$('videos').addEventListener('change',()=>{
+ previewUrls.forEach(URL.revokeObjectURL);previewUrls=[];$('previews').innerHTML='';
+ const files=Array.from($('videos').files);
+ if(files.length>5){showError('Choose no more than 5 videos.');$('videos').value='';return;}
+ files.forEach((file,i)=>{
+  const url=URL.createObjectURL(file);previewUrls.push(url);
+  const box=document.createElement('div');box.className='item';
+  const title=document.createElement('div');title.textContent=(i+1)+'. '+file.name+' · '+(file.size/1048576).toFixed(1)+' MB';box.appendChild(title);
+  if(i===0){const v=document.createElement('video');v.controls=true;v.preload='metadata';v.src=url;box.appendChild(v);}
+  $('previews').appendChild(box);
+ });
+});
+function showError(message){$('error').textContent=message;$('error').classList.remove('hidden');}
+async function loadHistory(){
+ try{
+  const res=await fetch('/api/history');const items=await res.json();$('history').innerHTML='';
+  if(!items.length){$('history').textContent='No exports yet.';return;}
+  items.forEach(item=>{
+   const div=document.createElement('div');div.className='item';
+   const name=document.createElement('div');name.textContent=item.filename;
+   const meta=document.createElement('div');meta.className='muted';
+   meta.textContent=item.clips+' clip(s) · '+item.resolution+'p · '+(item.size/1048576).toFixed(1)+' MB · '+new Date(item.created).toLocaleString();
+   const link=document.createElement('a');link.className='download';link.href='/download/'+encodeURIComponent(item.filename);link.textContent='Download';link.style.marginTop='8px';
+   div.append(name,meta,link);$('history').appendChild(div);
+  });
+ }catch{$('history').textContent='Could not load history.';}
+}
+$('refreshHistory').addEventListener('click',loadHistory);
+$('startBtn').addEventListener('click',async()=>{
+ const files=Array.from($('videos').files);$('error').classList.add('hidden');$('result').classList.add('hidden');
+ if(!files.length){showError('Please choose at least one video.');return;}
+ const total=files.reduce((n,f)=>n+f.size,0);if(total>500*1048576){showError('Total upload size exceeds 500 MB.');return;}
+ const data=new FormData();files.forEach(f=>data.append('videos',f));
+ data.append('mode',document.querySelector('input[name="mode"]:checked').value);
+ data.append('preset',$('preset').value);data.append('filter',$('manualFilter').value);
+ ['start','end','watermark','volume','resolution','ratio','quality'].forEach(k=>data.append(k,$(k).value));
+ $('startBtn').disabled=true;$('startBtn').textContent='UPLOADING…';$('status').textContent='Uploading files';$('percent').textContent='0%';$('bar').style.width='0%';
+ try{
+  const res=await fetch('/api/transform',{method:'POST',body:data});const body=await res.json();
+  if(!res.ok)throw new Error(body.error||'Upload failed.');
+  await poll(body.job_id);
+ }catch(err){showError(err.message);$('status').textContent='Failed';}
+ finally{$('startBtn').disabled=false;$('startBtn').textContent='TRANSFORM VIDEO';loadHistory();}
+});
+async function poll(id){
+ while(true){
+  const res=await fetch('/api/progress/'+encodeURIComponent(id));const job=await res.json();
+  if(!res.ok)throw new Error(job.error||'Could not read progress.');
+  $('percent').textContent=job.progress+'%';$('bar').style.width=job.progress+'%';$('status').textContent=job.message||job.status;
+  if(job.status==='done'){
+   $('result').classList.remove('hidden');$('result').innerHTML='';
+   const p=document.createElement('p');p.textContent='Export completed successfully.';
+   const a=document.createElement('a');a.className='download';a.href='/download/'+encodeURIComponent(job.output);a.textContent='Download MP4';$('result').append(p,a);return;
+  }
+  if(job.status==='error')throw new Error(job.message||'Processing failed.');
+  await new Promise(resolve=>setTimeout(resolve,1000));
+ }
+}
+loadHistory();
+</script></body></html>
